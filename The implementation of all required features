@@ -1,0 +1,251 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <stdexcept>
+
+using namespace std;
+
+// Step 1: Person Class (Abstract)
+class Person {
+protected:
+    string id;
+    string name;
+    int age;
+    char gender;
+    string phone;
+    string address;
+
+    // Step 2
+public:
+    virtual string getCategory() = 0; // Abstract method
+
+    // Constructor
+    Person(string id, string name, int age, char gender, string phone, string address) : id(id), name(name), age(age), gender(gender), phone(phone), address(address) {}
+
+    // Getters
+    string getId() {
+        return id;
+    }
+    string getName() {
+        return name;
+    }
+    int getAge() {
+        return age;
+    }
+    char getGender() {
+        return gender;
+    }
+    string getPhone() {
+        return phone;
+    }
+    string getAddress() {
+        return address;
+    }
+
+    // toString() method
+    virtual string toString() {
+        return "ID: " + id + ", Name: " + name + ", Age: " + to_string(age) +
+            ", Gender: " + gender + ", Phone: " + phone + ", Address: " + address;
+    }
+
+    // equals() method
+    virtual bool equals(Person* other) {
+        return id == other->getId();
+    }
+};
+
+// interface PayRoll
+class PayRoll {
+public:
+    // pure virtual function
+    virtual double ComputePayRoll() = 0;
+};
+
+
+// Step 3: Teacher Class (Concrete)
+class Teacher : public Person, public PayRoll {
+private:
+    string specialty;
+    string degree;
+    bool partTime;
+
+public:
+    // Constructor
+    Teacher(string id, string name, int age, char gender, string phone, string address, string specialty, string degree, bool partTime)
+        : Person(id, name, age, gender, phone, address), specialty(specialty), degree(degree), partTime(partTime) {}
+
+    // getCategory() method
+    string getCategory() override {
+        return "Teacher";
+    }
+
+    // toString() method
+    string toString() override {
+        return "Category: Teacher, " + Person::toString() + ", Specialty: " + specialty + ", Degree: " + degree + ", Part-time: " + (partTime ? "Yes" : "No");
+    }
+
+    // equals() method
+    bool equals(Person* other) override {
+        Teacher* otherTeacher = dynamic_cast<Teacher*>(other);
+        if (otherTeacher == nullptr) return false;
+
+        return Person::equals(other) && specialty == otherTeacher->specialty &&
+            degree == otherTeacher->degree && partTime == otherTeacher->partTime;
+    }
+
+    // Step 5: ComputePayRoll() method
+    double ComputePayRoll() override {
+        double hoursWorked = 0;
+
+        if (partTime) {
+            double degreeRate = (degree == "PhD") ? 112 : (degree == "Master") ? 82 : 42;
+            return (hoursWorked * degreeRate * 2) * 0.76;
+        }
+        else {
+            double degreeRate = (degree == "PhD") ? 112 : (degree == "Master") ? 82 : 42;
+            return (32 * degreeRate * 2) * 0.85;
+        }
+    }
+};
+
+// Step 4: Staff Class (Concrete)
+class Staff : public Person, public PayRoll {
+private:
+    string duty;
+    int workload; // Weekly working hours
+
+public:
+    // Constructor
+    Staff(string id, string name, int age, char gender, string phone, string address,
+        string duty, int workload)
+        : Person(id, name, age, gender, phone, address), duty(duty), workload(workload) {}
+
+    // getCategory() method
+    string getCategory() override { return "Staff"; }
+
+    // toString() method
+    string toString() override {
+        return "Category: Staff, " + Person::toString() +
+            ", Duty: " + duty + ", Workload: " + to_string(workload);
+    }
+
+    // equals() method
+    bool equals(Person* other) override {
+        Staff* otherStaff = dynamic_cast<Staff*>(other);
+        if (otherStaff == nullptr) return false;
+        return Person::equals(other) && duty == otherStaff->duty && workload == otherStaff->workload;
+    }
+
+    // Step 5: ComputePayRoll() method
+    double ComputePayRoll() override {
+        double salary = (workload * 32 * 2) * 0.75;
+        return (workload > 40) ? 40 * 32 * 2 * 0.75 : salary;
+    }
+
+};
+
+
+class Department {
+private:
+    string id;
+    string name;
+    Teacher* dean;
+    vector<Teacher*> teachers;
+    vector<Staff*> staffMembers;
+
+public:
+    Department(string id, string name) : id(id), name(name), dean(nullptr) {}
+
+    void addTeacher(Teacher* teacher) {
+        for (auto& t : teachers) {
+            if (t->equals(teacher)) {
+                throw runtime_error("Teacher already exists in the department.");
+            }
+        }
+        teachers.push_back(teacher);
+    }
+
+    void addStaff(Staff* staff) {
+        for (auto& s : staffMembers) {
+            if (s->equals(staff)) {
+                throw runtime_error("Staff member already exists in the department.");
+            }
+        }
+        staffMembers.push_back(staff);
+    }
+
+    void setDean(Teacher* teacher) {
+        if (find(teachers.begin(), teachers.end(), teacher) == teachers.end()) {
+            throw runtime_error("Dean must be a teacher in the department.");
+        }
+        dean = teacher;
+    }
+
+    string getId() {
+        return id;
+    }
+
+    string getName() {
+        return name;
+    }
+
+    Teacher* getDean() {
+        return dean;
+    }
+
+    vector<Teacher*> getTeachers() {
+        return teachers;
+    }
+
+    vector<Staff*> getStaffMembers() {
+        return staffMembers;
+    }
+};
+
+
+// Sample test
+int main() {
+    Teacher t1("T001", "Alice", 35, 'F', "123-456-7890", "123 Main St", "Math", "PhD", true);
+    Teacher t2("T002", "Bob", 40, 'M', "234-567-8901", "456 Elm St", "Physics", "Master", false);
+    Staff s1("S001", "Charlie", 30, 'M', "345-678-9012", "789 Oak St", "Admin", 35);
+    Staff s2("S002", "Amanda", 30, 'F', "514-397-1238", "309 Hill ", "Admin", 45);
+
+    cout << t1.toString() << endl;
+    cout << t2.toString() << endl;
+    cout << s1.toString() << endl;
+    cout << s2.toString() << endl;
+
+    cout << "T1 Payroll: " << t1.ComputePayRoll() << endl;
+    cout << "T2 Payroll: " << t2.ComputePayRoll() << endl;
+    cout << "S1 Payroll: " << s1.ComputePayRoll() << endl;
+    cout << "S2 Payroll: " << s2.ComputePayRoll() << endl;
+
+
+
+    fstream myFile;
+    myFile.open("department.txt", ios::in);
+
+    if (myFile.is_open()) {
+        string line;
+        while (getline(myFile, line)) {
+            cout << line << endl;
+        }
+
+        myFile.close();
+    }
+
+
+    myFile.open ("department.txt", ios::app | ios::out);
+
+    cout << endl;
+
+    myFile << t1.getName() << " " << "("<< t1.getCategory() << ")" << endl;
+
+    myFile.close();
+
+    system("pause>0");
+
+
+    return 0;
+}
